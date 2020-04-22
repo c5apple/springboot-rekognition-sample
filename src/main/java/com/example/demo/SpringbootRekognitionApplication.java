@@ -28,11 +28,14 @@ import com.amazonaws.services.rekognition.model.DetectLabelsRequest;
 import com.amazonaws.services.rekognition.model.DetectLabelsResult;
 import com.amazonaws.services.rekognition.model.DetectModerationLabelsRequest;
 import com.amazonaws.services.rekognition.model.DetectModerationLabelsResult;
+import com.amazonaws.services.rekognition.model.DetectTextRequest;
+import com.amazonaws.services.rekognition.model.DetectTextResult;
 import com.amazonaws.services.rekognition.model.FaceDetail;
 import com.amazonaws.services.rekognition.model.Image;
 import com.amazonaws.services.rekognition.model.Label;
 import com.amazonaws.services.rekognition.model.ModerationLabel;
 import com.amazonaws.services.rekognition.model.S3Object;
+import com.amazonaws.services.rekognition.model.TextDetection;
 import com.amazonaws.util.IOUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -49,6 +52,7 @@ public class SpringbootRekognitionApplication {
 			app.getDetectFaces();
 			app.getCompareFaces();
 			app.getDetectModerationLabels();
+			app.getDetectText();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -239,6 +243,44 @@ public class SpringbootRekognitionApplication {
 				System.out.println("Label: " + label.getName()
 						+ "\n Confidence: " + label.getConfidence().toString() + "%"
 						+ "\n Parent:" + label.getParentName());
+			}
+		} catch (AmazonRekognitionException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * イメージ内のテキストの検出
+	 * <p>※日本語は対応していない</p>
+	 */
+	private void getDetectText() throws FileNotFoundException, IOException {
+		// ローカルファイルの画像
+		String filePath = "C:\\photo.jpg";
+		ByteBuffer imageBytes;
+		try (InputStream inputStream = new FileInputStream(new File(filePath))) {
+			imageBytes = ByteBuffer.wrap(IOUtils.toByteArray(inputStream));
+		}
+		Image imageObject = new Image().withBytes(imageBytes);
+
+		AmazonRekognition rekognitionClient = AmazonRekognitionClientBuilder.defaultClient();
+
+		DetectTextRequest request = new DetectTextRequest().withImage(imageObject);
+
+		try {
+			// 画像分析を実行する
+			DetectTextResult result = rekognitionClient.detectText(request);
+
+			// 結果を出力する
+			System.out.println("Detected lines and words for " + filePath);
+			List<TextDetection> textDetections = result.getTextDetections();
+			for (TextDetection text : textDetections) {
+
+				System.out.println("Detected: " + text.getDetectedText());
+				System.out.println("Confidence: " + text.getConfidence().toString());
+				System.out.println("Id : " + text.getId());
+				System.out.println("Parent Id: " + text.getParentId());
+				System.out.println("Type: " + text.getType());
+				System.out.println();
 			}
 		} catch (AmazonRekognitionException e) {
 			e.printStackTrace();
