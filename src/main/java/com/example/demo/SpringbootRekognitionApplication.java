@@ -100,6 +100,7 @@ public class SpringbootRekognitionApplication {
 
 	/**
 	 * Amazon S3 バケットに保存されたイメージの分析
+	 * @see https://docs.aws.amazon.com/ja_jp/rekognition/latest/dg/images-s3.html
 	 */
 	private void getDetectLabels() {
 		// S3に格納されている画像
@@ -131,6 +132,7 @@ public class SpringbootRekognitionApplication {
 
 	/**
 	 * ローカルファイルシステムからロードしたイメージの分析
+	 * @see https://docs.aws.amazon.com/ja_jp/rekognition/latest/dg/images-bytes.html
 	 */
 	private void getDetectLabelsForLocal() throws FileNotFoundException, IOException {
 		// ローカルファイルの画像
@@ -165,6 +167,7 @@ public class SpringbootRekognitionApplication {
 
 	/**
 	 * イメージ内の顔の検出
+	 * @see https://docs.aws.amazon.com/ja_jp/rekognition/latest/dg/faces-detect-images.html
 	 */
 	private void getDetectFaces() throws FileNotFoundException, IOException {
 		// ローカルファイルの画像
@@ -210,6 +213,7 @@ public class SpringbootRekognitionApplication {
 
 	/**
 	 * イメージ間の顔の比較
+	 * @see https://docs.aws.amazon.com/ja_jp/rekognition/latest/dg/faces-comparefaces.html
 	 */
 	private void getCompareFaces() throws FileNotFoundException, IOException {
 		// ローカルファイルの画像
@@ -256,6 +260,7 @@ public class SpringbootRekognitionApplication {
 
 	/**
 	 * 安全でないイメージの検出
+	 * @see https://docs.aws.amazon.com/ja_jp/rekognition/latest/dg/procedure-moderate-images.html
 	 */
 	private void getDetectModerationLabels() throws FileNotFoundException, IOException {
 		// ローカルファイルの画像
@@ -292,6 +297,7 @@ public class SpringbootRekognitionApplication {
 	/**
 	 * イメージ内のテキストの検出
 	 * <p>※日本語は対応していない</p>
+	 * @see https://docs.aws.amazon.com/ja_jp/rekognition/latest/dg/text-detecting-text-procedure.html
 	 */
 	private void getDetectText() throws FileNotFoundException, IOException {
 		// ローカルファイルの画像
@@ -342,6 +348,7 @@ public class SpringbootRekognitionApplication {
 
 	/**
 	 * 保存されたビデオの分析
+	 * @see https://docs.aws.amazon.com/ja_jp/rekognition/latest/dg/video-analyzing-with-sqs.html
 	 */
 	private void getDetectVideo() throws Exception {
 		video = "video.mp4"; // FIXME
@@ -562,6 +569,7 @@ public class SpringbootRekognitionApplication {
 
 	/**
 	 * 安全でないビデオの検出
+	 * @see https://docs.aws.amazon.com/ja_jp/rekognition/latest/dg/procedure-moderate-videos.html
 	 */
 	private void getDetectModerationVideo() throws Exception {
 		video = "video.mp4"; // FIXME
