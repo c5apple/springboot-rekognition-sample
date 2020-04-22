@@ -32,6 +32,8 @@ import com.amazonaws.services.rekognition.model.CompareFacesMatch;
 import com.amazonaws.services.rekognition.model.CompareFacesRequest;
 import com.amazonaws.services.rekognition.model.CompareFacesResult;
 import com.amazonaws.services.rekognition.model.ComparedFace;
+import com.amazonaws.services.rekognition.model.ContentModerationDetection;
+import com.amazonaws.services.rekognition.model.ContentModerationSortBy;
 import com.amazonaws.services.rekognition.model.DetectFacesRequest;
 import com.amazonaws.services.rekognition.model.DetectFacesResult;
 import com.amazonaws.services.rekognition.model.DetectLabelsRequest;
@@ -41,6 +43,8 @@ import com.amazonaws.services.rekognition.model.DetectModerationLabelsResult;
 import com.amazonaws.services.rekognition.model.DetectTextRequest;
 import com.amazonaws.services.rekognition.model.DetectTextResult;
 import com.amazonaws.services.rekognition.model.FaceDetail;
+import com.amazonaws.services.rekognition.model.GetContentModerationRequest;
+import com.amazonaws.services.rekognition.model.GetContentModerationResult;
 import com.amazonaws.services.rekognition.model.GetLabelDetectionRequest;
 import com.amazonaws.services.rekognition.model.GetLabelDetectionResult;
 import com.amazonaws.services.rekognition.model.Image;
@@ -52,6 +56,8 @@ import com.amazonaws.services.rekognition.model.ModerationLabel;
 import com.amazonaws.services.rekognition.model.NotificationChannel;
 import com.amazonaws.services.rekognition.model.Parent;
 import com.amazonaws.services.rekognition.model.S3Object;
+import com.amazonaws.services.rekognition.model.StartContentModerationRequest;
+import com.amazonaws.services.rekognition.model.StartContentModerationResult;
 import com.amazonaws.services.rekognition.model.StartLabelDetectionRequest;
 import com.amazonaws.services.rekognition.model.StartLabelDetectionResult;
 import com.amazonaws.services.rekognition.model.TextDetection;
@@ -86,6 +92,7 @@ public class SpringbootRekognitionApplication {
 			app.getDetectModerationLabels();
 			app.getDetectText();
 			app.getDetectVideo();
+			app.getDetectModerationVideo();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -551,5 +558,90 @@ public class SpringbootRekognitionApplication {
 			System.out.println("SNS topic deleted");
 		}
 		// TODO サブスクリプションが削除されていない
+	}
+
+	/**
+	 * 安全でないビデオの検出
+	 */
+	private void getDetectModerationVideo() throws Exception {
+		video = "video.mp4"; // FIXME
+		bucket = "bucket"; // FIXME
+		roleArn = "arn:aws:iam::XXXXX:role"; // FIXME
+
+		sns = AmazonSNSClientBuilder.defaultClient();
+		sqs = AmazonSQSClientBuilder.defaultClient();
+		rek = AmazonRekognitionClientBuilder.defaultClient();
+
+		CreateTopicandQueue();
+
+		//=================================================
+
+		StartUnsafeContentDetection(bucket, video);
+
+		if (GetSQSMessageSuccess() == true)
+			GetUnsafeContentDetectionResults();
+
+		//=================================================
+
+		DeleteTopicandQueue();
+		System.out.println("Done!");
+	}
+
+	//Content moderation ==================================================================
+	private static void StartUnsafeContentDetection(String bucket, String video) throws Exception {
+
+		NotificationChannel channel = new NotificationChannel()
+				.withSNSTopicArn(snsTopicArn)
+				.withRoleArn(roleArn);
+
+		StartContentModerationRequest req = new StartContentModerationRequest()
+				.withVideo(new Video()
+						.withS3Object(new S3Object()
+								.withBucket(bucket)
+								.withName(video)))
+				.withNotificationChannel(channel);
+
+		StartContentModerationResult startModerationLabelDetectionResult = rek.startContentModeration(req);
+		startJobId = startModerationLabelDetectionResult.getJobId();
+
+	}
+
+	private static void GetUnsafeContentDetectionResults() throws Exception {
+
+		int maxResults = 10;
+		String paginationToken = null;
+		GetContentModerationResult moderationLabelDetectionResult = null;
+
+		do {
+			if (moderationLabelDetectionResult != null) {
+				paginationToken = moderationLabelDetectionResult.getNextToken();
+			}
+
+			moderationLabelDetectionResult = rek.getContentModeration(
+					new GetContentModerationRequest()
+							.withJobId(startJobId)
+							.withNextToken(paginationToken)
+							.withSortBy(ContentModerationSortBy.TIMESTAMP)
+							.withMaxResults(maxResults));
+
+			VideoMetadata videoMetaData = moderationLabelDetectionResult.getVideoMetadata();
+
+			System.out.println("Format: " + videoMetaData.getFormat());
+			System.out.println("Codec: " + videoMetaData.getCodec());
+			System.out.println("Duration: " + videoMetaData.getDurationMillis());
+			System.out.println("FrameRate: " + videoMetaData.getFrameRate());
+
+			//Show moderated content labels, confidence and detection times
+			List<ContentModerationDetection> moderationLabelsInFrames = moderationLabelDetectionResult
+					.getModerationLabels();
+
+			for (ContentModerationDetection label : moderationLabelsInFrames) {
+				long seconds = label.getTimestamp() / 1000;
+				System.out.print("Sec: " + Long.toString(seconds));
+				System.out.println(label.getModerationLabel().toString());
+				System.out.println();
+			}
+		} while (moderationLabelDetectionResult != null && moderationLabelDetectionResult.getNextToken() != null);
+
 	}
 }
