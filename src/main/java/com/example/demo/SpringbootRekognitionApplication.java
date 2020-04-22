@@ -17,6 +17,11 @@ import com.amazonaws.services.rekognition.AmazonRekognitionClientBuilder;
 import com.amazonaws.services.rekognition.model.AgeRange;
 import com.amazonaws.services.rekognition.model.AmazonRekognitionException;
 import com.amazonaws.services.rekognition.model.Attribute;
+import com.amazonaws.services.rekognition.model.BoundingBox;
+import com.amazonaws.services.rekognition.model.CompareFacesMatch;
+import com.amazonaws.services.rekognition.model.CompareFacesRequest;
+import com.amazonaws.services.rekognition.model.CompareFacesResult;
+import com.amazonaws.services.rekognition.model.ComparedFace;
 import com.amazonaws.services.rekognition.model.DetectFacesRequest;
 import com.amazonaws.services.rekognition.model.DetectFacesResult;
 import com.amazonaws.services.rekognition.model.DetectLabelsRequest;
@@ -42,6 +47,7 @@ public class SpringbootRekognitionApplication {
 			app.getDetectLabels();
 			app.getDetectLabelsForLocal();
 			app.getDetectFaces();
+			app.getCompareFaces();
 			app.getDetectModerationLabels();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -156,6 +162,52 @@ public class SpringbootRekognitionApplication {
 		} catch (AmazonRekognitionException e) {
 			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * イメージ間の顔の比較
+	 */
+	private void getCompareFaces() throws FileNotFoundException, IOException {
+		// ローカルファイルの画像
+		String sourcePath = "C:\\source.jpg"; // 一人の写真
+		String targetPath = "C:\\target.jpg"; // 一人または複数人の写真
+
+		ByteBuffer sourceImageBytes = null;
+		try (InputStream inputStream = new FileInputStream(new File(sourcePath))) {
+			sourceImageBytes = ByteBuffer.wrap(IOUtils.toByteArray(inputStream));
+		}
+		ByteBuffer targetImageBytes = null;
+		try (InputStream inputStream = new FileInputStream(new File(targetPath))) {
+			targetImageBytes = ByteBuffer.wrap(IOUtils.toByteArray(inputStream));
+		}
+
+		Image source = new Image().withBytes(sourceImageBytes);
+		Image target = new Image().withBytes(targetImageBytes);
+
+		AmazonRekognition rekognitionClient = AmazonRekognitionClientBuilder.defaultClient();
+
+		CompareFacesRequest request = new CompareFacesRequest()
+				.withSourceImage(source)
+				.withTargetImage(target)
+				.withSimilarityThreshold(70F);
+
+		// 画像分析を実行する
+		CompareFacesResult compareFacesResult = rekognitionClient.compareFaces(request);
+
+		// 結果を出力する
+		List<CompareFacesMatch> faceDetails = compareFacesResult.getFaceMatches();
+		for (CompareFacesMatch match : faceDetails) {
+			ComparedFace face = match.getFace();
+			BoundingBox position = face.getBoundingBox();
+			System.out.println("Face at " + position.getLeft().toString()
+					+ " " + position.getTop()
+					+ " matches with " + match.getSimilarity().toString()
+					+ "% confidence.");
+		}
+
+		List<ComparedFace> uncompared = compareFacesResult.getUnmatchedFaces();
+		System.out.println("There was " + uncompared.size()
+				+ " face(s) that did not match");
 	}
 
 	/**
